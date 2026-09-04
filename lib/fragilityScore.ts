@@ -50,7 +50,7 @@ export interface FragilityBreakdown {
 const GOLD_HAIRCUT = 0.22; // discount for making charges / LTV limits on liquidation, per research
 const CHIT_FUND_HAIRCUT = 0.35; // illiquid outside auction cycle, counterparty risk
 const CONCENTRATED_ASSET_LIQUIDITY_HAIRCUT = 0.6; // e.g. property — technically valuable, slow/hard to access in 30 days
-const DEPENDENCY_BURN_MULTIPLIER = 0.18; // each dependent adds ~18% to effective monthly burn rate
+export const DEPENDENCY_BURN_MULTIPLIER = 0.18; // each dependent adds ~18% to effective monthly burn rate
 
 function scoreIncomeStability(input: FragilityInput): number {
     switch (input.incomeStability) {
@@ -63,7 +63,7 @@ function scoreIncomeStability(input: FragilityInput): number {
     }
 }
 
-function computeEffectiveLiquidAssets(input: FragilityInput) {
+export function computeEffectiveLiquidAssets(input: FragilityInput) {
     const goldEffective = input.goldValueSelfReported * (1 - GOLD_HAIRCUT);
     const chitEffective = input.chitFundValue * (1 - CHIT_FUND_HAIRCUT);
     const concentratedEffective =
@@ -77,11 +77,14 @@ function computeEffectiveLiquidAssets(input: FragilityInput) {
     return { effectiveLiquidAssets, goldEffective, chitEffective };
 }
 
+export function computeDependencyAdjustedBurnRate(input: FragilityInput): number {
+    return input.monthlyEssentialExpenses * (1 + input.dependentsCount * DEPENDENCY_BURN_MULTIPLIER);
+}
+
 function scoreSavingsRunway(input: FragilityInput) {
     const { effectiveLiquidAssets } = computeEffectiveLiquidAssets(input);
 
-    const dependencyAdjustedBurnRate =
-        input.monthlyEssentialExpenses * (1 + input.dependentsCount * DEPENDENCY_BURN_MULTIPLIER);
+    const dependencyAdjustedBurnRate = computeDependencyAdjustedBurnRate(input);
 
     const runwayMonths =
         dependencyAdjustedBurnRate > 0 ? effectiveLiquidAssets / dependencyAdjustedBurnRate : 0;

@@ -9,6 +9,7 @@ import {
   IncomeStability,
 } from "@/lib/fragilityScore";
 import { rankAllInterventions } from "@/lib/whatIfProjection";
+import { simulateShock, ShockType } from "@/lib/shockSimulator";
 
 const DEFAULT_INPUT: FragilityInput = {
   monthlyIncome: 0,
@@ -26,22 +27,17 @@ const DEFAULT_INPUT: FragilityInput = {
   hasTermLifeInsurance: false,
 };
 
+// Mercury/Wealthfront fintech palette:
+// Sole accent: Forest green #2D5A4A used only for primary action and resilient score.
 function scoreColor(score: number) {
-  if (score < 40) return "text-red-600";
-  if (score < 80) return "text-amber-600";
-  return "text-emerald-600";
-}
-
-function scoreBg(score: number) {
-  if (score < 40) return "bg-red-50 border-red-200";
-  if (score < 80) return "bg-amber-50 border-amber-200";
-  return "bg-emerald-50 border-emerald-200";
+  if (score >= 80) return "text-[#2D5A4A]";
+  return "text-[#1A2332]";
 }
 
 function pillarBarColor(score: number) {
-  if (score < 40) return "bg-red-500";
-  if (score < 80) return "bg-amber-500";
-  return "bg-emerald-500";
+  if (score >= 70) return "bg-[#2D5A4A]";
+  if (score >= 40) return "bg-[#1A2332]/50";
+  return "bg-[#B54834]";
 }
 
 // ─── Field components ──────────────────────────────────────────────
@@ -61,14 +57,14 @@ function CurrencyField({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-medium text-[#1A2332]">
         {label}
       </label>
       {sublabel && (
-        <p className="text-xs text-slate-500 mt-0.5">{sublabel}</p>
+        <p className="text-xs text-[#5E6C84] mt-0.5">{sublabel}</p>
       )}
-      <div className="mt-1 relative">
-        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-sm">
+      <div className="mt-1.5 relative">
+        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#5E6C84] text-sm font-mono">
           ₹
         </span>
         <input
@@ -77,8 +73,8 @@ function CurrencyField({
           min={0}
           value={value || ""}
           onChange={(e) => onChange(Number(e.target.value) || 0)}
-          className="block w-full rounded-lg border border-slate-300 bg-white pl-7 pr-3 py-2 text-sm
-                     focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none transition"
+          className="block w-full rounded-md border border-[#E8E3DA] bg-white pl-7 pr-3 py-2 text-sm text-[#1A2332]
+                     focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition placeholder-[#5E6C84]/40"
           placeholder="0"
         />
       </div>
@@ -101,11 +97,11 @@ function NumberField({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-medium text-[#1A2332]">
         {label}
       </label>
       {sublabel && (
-        <p className="text-xs text-slate-500 mt-0.5">{sublabel}</p>
+        <p className="text-xs text-[#5E6C84] mt-0.5">{sublabel}</p>
       )}
       <input
         id={id}
@@ -113,8 +109,8 @@ function NumberField({
         min={0}
         value={value || ""}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                   focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none transition"
+        className="mt-1.5 block w-full rounded-md border border-[#E8E3DA] bg-white px-3 py-2 text-sm text-[#1A2332]
+                   focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition placeholder-[#5E6C84]/40"
         placeholder="0"
       />
     </div>
@@ -135,30 +131,30 @@ function CheckboxField({
   id: string;
 }) {
   return (
-    <label htmlFor={id} className="flex items-start gap-3 cursor-pointer group">
+    <label htmlFor={id} className="flex items-start gap-3 cursor-pointer group select-none">
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-700 
-                   focus:ring-slate-500 cursor-pointer"
+        className="mt-0.5 h-4 w-4 rounded border-[#E8E3DA] text-[#2D5A4A] 
+                   focus:ring-[#2D5A4A] focus:ring-offset-0 cursor-pointer accent-[#2D5A4A]"
       />
       <div>
-        <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition">
+        <span className="text-sm font-medium text-[#1A2332] transition">
           {label}
         </span>
         {sublabel && (
-          <p className="text-xs text-slate-500 mt-0.5">{sublabel}</p>
+          <p className="text-xs text-[#5E6C84] mt-0.5">{sublabel}</p>
         )}
       </div>
     </label>
   );
 }
 
-// ─── Pillar card ────────────────────────────────────────────────────
+// ─── Pillar item (Unboxed, clean typographic row) ───────────────────
 
-function PillarCard({
+function PillarItem({
   name,
   score,
   weight,
@@ -174,45 +170,86 @@ function PillarCard({
   const [showMethodology, setShowMethodology] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-slate-700">{name}</h3>
-        <span className={`text-lg font-bold tabular-nums ${scoreColor(score)}`}>
-          {score}
+    <div className="py-5 border-b border-[#E8E3DA] last:border-b-0 space-y-2.5">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline gap-2">
+          <h4 className="text-base font-semibold text-[#1A2332]">{name}</h4>
+          <span className="text-sm text-[#5E6C84]">({(weight * 100).toFixed(0)}% weight)</span>
+        </div>
+        <span className={`text-lg font-bold tabular-nums font-mono ${scoreColor(score)}`}>
+          {score}<span className="text-sm text-[#5E6C84]/60 font-normal">/100</span>
         </span>
       </div>
-      <div className="w-full bg-slate-200 rounded-full h-2 mb-3">
+
+      <div className="w-full bg-[#E8E3DA]/60 rounded-full h-1.5 overflow-hidden">
         <div
-          className={`h-2 rounded-full transition-all duration-500 ${pillarBarColor(score)}`}
-          style={{ width: `${Math.max(score, 3)}%` }}
+          className={`h-full rounded-full transition-all duration-500 ${pillarBarColor(score)}`}
+          style={{ width: `${Math.max(score, 2)}%` }}
         />
       </div>
-      <p className="text-xs text-slate-600 leading-relaxed">{note}</p>
-      
-      <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] text-slate-400">Weight: {(weight * 100).toFixed(0)}%</p>
-          <button
-            type="button"
-            onClick={() => setShowMethodology(!showMethodology)}
-            className="text-[10px] flex items-center gap-1 text-indigo-500 hover:text-indigo-600 transition"
-          >
-            <svg className={`w-3 h-3 transition-transform ${showMethodology ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-            Why this number?
-          </button>
-        </div>
-        
+
+      <p className="text-sm text-[#5E6C84] leading-relaxed pt-0.5">{note}</p>
+
+      <div className="pt-0.5">
+        <button
+          type="button"
+          onClick={() => setShowMethodology(!showMethodology)}
+          className="text-xs text-[#1A2332]/70 hover:text-[#1A2332] transition underline underline-offset-2 decoration-[#E8E3DA]"
+        >
+          {showMethodology ? "Hide methodology" : "Why this number?"}
+        </button>
+
         {showMethodology && (
-          <div className="bg-indigo-50 rounded p-2 text-[10px] text-indigo-800 leading-relaxed">
+          <p className="mt-2 text-sm text-[#5E6C84] bg-white/70 border border-[#E8E3DA] rounded p-3 leading-relaxed">
             {methodology}
-          </div>
+          </p>
         )}
       </div>
     </div>
   );
 }
 
-// ─── Main page ──────────────────────────────────────────────────────
+// ─── Collapsible section (smooth CSS grid-rows animation) ────────────
+
+function CollapsibleSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-[#E8E3DA]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between py-5 text-left group cursor-pointer"
+      >
+        <span className="text-base font-semibold text-[#1A2332] group-hover:text-[#2D5A4A] transition-colors">
+          {title}
+        </span>
+        <svg
+          className={`w-4 h-4 text-[#5E6C84] transition-transform duration-300 shrink-0 ml-4 ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {/* grid-rows trick: 0fr → 1fr gives smooth height transition without JS */}
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      >
+        <div className="overflow-hidden">
+          <div className="pb-10">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function Home() {
   const [input, setInput] = useState<FragilityInput>(DEFAULT_INPUT);
@@ -222,7 +259,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const [activeShock, setActiveShock] = useState<ShockType | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   async function handleDownloadShareCard() {
     if (!shareCardRef.current) return;
@@ -249,10 +288,16 @@ export default function Home() {
     e.preventDefault();
     setError(null);
     setExplanation(null);
+    setActiveShock(null);
 
     // Compute score client-side (instant)
     const computed = computeFragilityScore(input);
     setResult(computed);
+
+    // Auto-scroll to results
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
 
     // Call API for explanation
     setLoading(true);
@@ -276,51 +321,51 @@ export default function Home() {
   }
 
   return (
-    <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
+    <main className="flex-1 py-14 sm:py-20 px-4 sm:px-8 lg:px-12">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+        <header className="mb-14 pb-8 border-b border-[#E8E3DA]">
+          <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#1A2332] tracking-tight">
             Wealth Fragility Score
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            A research-backed diagnostic — how many months can you survive a shock?
+          <p className="mt-2.5 text-sm text-[#5E6C84] leading-relaxed max-w-xl">
+            A research-backed resilience diagnostic for first-generation earners — how many months of shock can you absorb before wealth breaks?
           </p>
-        </div>
+        </header>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* ── Income ── */}
+        {/* Diagnostic Form */}
+        <form onSubmit={handleSubmit} className="space-y-12">
+          {/* Income */}
           <section>
-            <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
               Income
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <CurrencyField
                 id="monthlyIncome"
-                label="Monthly Income"
-                sublabel="Take-home after tax"
+                label="Monthly income"
+                sublabel="Net take-home after tax"
                 value={input.monthlyIncome}
                 onChange={(v) => update("monthlyIncome", v)}
               />
               <CurrencyField
                 id="monthlyEssentialExpenses"
-                label="Essential Expenses"
-                sublabel="Rent, food, utilities, transport"
+                label="Essential expenses"
+                sublabel="Rent, groceries, utilities, transport"
                 value={input.monthlyEssentialExpenses}
                 onChange={(v) => update("monthlyEssentialExpenses", v)}
               />
             </div>
-            <div className="mt-4">
-              <label htmlFor="incomeStability" className="block text-sm font-medium text-slate-700">
-                Income Stability
+            <div className="mt-5">
+              <label htmlFor="incomeStability" className="block text-sm font-medium text-[#1A2332]">
+                Income stability
               </label>
               <select
                 id="incomeStability"
                 value={input.incomeStability}
                 onChange={(e) => update("incomeStability", e.target.value as IncomeStability)}
-                className="mt-1 block w-full sm:w-1/2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                           focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none transition"
+                className="mt-1.5 block w-full sm:w-1/2 rounded-md border border-[#E8E3DA] bg-white px-3 py-2 text-sm text-[#1A2332]
+                           focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition"
               >
                 <option value="salaried_fixed">Salaried — Fixed</option>
                 <option value="salaried_variable">Salaried — Variable</option>
@@ -329,84 +374,84 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ── Assets ── */}
+          {/* Assets & savings */}
           <section>
-            <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">
-              Assets &amp; Savings
+            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
+              Assets &amp; savings
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <CurrencyField
                 id="liquidSavings"
-                label="Liquid Savings"
-                sublabel="Cash + savings account + liquid MFs"
+                label="Liquid savings"
+                sublabel="Bank accounts, cash, liquid mutual funds"
                 value={input.liquidSavings}
                 onChange={(v) => update("liquidSavings", v)}
               />
               <CurrencyField
                 id="goldValueSelfReported"
-                label="Gold Value"
+                label="Gold value"
                 sublabel="Jewelry / coins at current market value"
                 value={input.goldValueSelfReported}
                 onChange={(v) => update("goldValueSelfReported", v)}
               />
               <CurrencyField
                 id="chitFundValue"
-                label="Chit Fund Value"
-                sublabel="Accumulated / expected value"
+                label="Chit fund value"
+                sublabel="Accumulated or expected value"
                 value={input.chitFundValue}
                 onChange={(v) => update("chitFundValue", v)}
               />
               <CurrencyField
                 id="concentratedAssetValue"
-                label="Concentrated Assets"
-                sublabel="Single property, single business stake"
+                label="Concentrated assets"
+                sublabel="Single property, single business equity"
                 value={input.concentratedAssetValue}
                 onChange={(v) => update("concentratedAssetValue", v)}
               />
               <CurrencyField
                 id="diversifiedInvestments"
-                label="Diversified Investments"
-                sublabel="Mutual funds, equities, portfolio"
+                label="Diversified investments"
+                sublabel="Mutual funds, equities, stocks"
                 value={input.diversifiedInvestments}
                 onChange={(v) => update("diversifiedInvestments", v)}
               />
             </div>
           </section>
 
-          {/* ── Debt ── */}
+          {/* Debt */}
           <section>
-            <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
               Debt
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <CurrencyField
                 id="monthlyDebtPayments"
-                label="Monthly Debt Payments"
-                sublabel="EMIs, credit card minimums, all debt service"
+                label="Monthly debt payments"
+                sublabel="Total EMIs, credit card minimums, debt service"
                 value={input.monthlyDebtPayments}
                 onChange={(v) => update("monthlyDebtPayments", v)}
               />
             </div>
-            <div className="mt-4">
+            <div className="mt-5">
               <CheckboxField
                 id="hasHighInterestRevolvingDebt"
                 label="High-interest revolving debt"
-                sublabel="Credit card revolving balance, BNPL, or payday-style debt"
+                sublabel="Credit card revolving balance, BNPL, or short-term personal loans"
                 checked={input.hasHighInterestRevolvingDebt}
                 onChange={(v) => update("hasHighInterestRevolvingDebt", v)}
               />
             </div>
           </section>
 
-          {/* ── Dependents ── */}
+          {/* Dependents */}
           <section>
-            <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
               Dependents
             </h2>
             <div className="w-full sm:w-1/2">
               <NumberField
                 id="dependentsCount"
-                label="Number of Dependents"
+                label="Number of dependents"
                 sublabel="People who rely partly or fully on your income"
                 value={input.dependentsCount}
                 onChange={(v) => update("dependentsCount", v)}
@@ -414,307 +459,495 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ── Insurance ── */}
+          {/* Insurance */}
           <section>
-            <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
               Insurance
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <CheckboxField
                 id="hasHealthInsurance"
-                label="Health Insurance"
-                sublabel="Adequate family floater or equivalent"
+                label="Health insurance"
+                sublabel="Adequate family floater or corporate policy"
                 checked={input.hasHealthInsurance}
                 onChange={(v) => update("hasHealthInsurance", v)}
               />
               <CheckboxField
                 id="hasTermLifeInsurance"
-                label="Term Life Insurance"
-                sublabel="Adequate term cover"
+                label="Term life insurance"
+                sublabel="Pure term protection for dependents"
                 checked={input.hasTermLifeInsurance}
                 onChange={(v) => update("hasTermLifeInsurance", v)}
               />
             </div>
           </section>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full sm:w-auto px-8 py-3 rounded-lg bg-slate-800 text-white text-sm font-medium
-                       hover:bg-slate-700 active:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition cursor-pointer"
-          >
-            {loading ? "Analysing…" : "Get My Score"}
-          </button>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full sm:w-auto px-8 py-3 rounded-md bg-[#2D5A4A] text-white text-sm font-medium
+                         hover:bg-[#24493C] active:bg-[#1C3A30] disabled:opacity-50 disabled:cursor-not-allowed
+                         transition shadow-xs cursor-pointer"
+            >
+              {loading ? "Analyzing profile…" : "Calculate resilience score"}
+            </button>
+          </div>
         </form>
 
-        {/* ── Results ── */}
+        {/* ── Results Area ── */}
         {result && (
-          <div className="mt-10 space-y-6">
-            {/* Score hero */}
-            <div className={`rounded-xl border p-6 text-center ${scoreBg(result.score)}`}>
-              <p className="text-sm font-medium text-slate-600 mb-1">Your Resilience Score</p>
-              <p className={`text-5xl font-bold tabular-nums ${scoreColor(result.score)}`}>
-                {result.score}
-                <span className="text-lg font-normal text-slate-400"> / 100</span>
+          <div ref={resultsRef} className="mt-20 space-y-0">
+
+            {/* 1. HERO SCORE — always visible */}
+            <section className="text-center py-16 sm:py-20 border-y border-[#E8E3DA] space-y-5">
+              <p className="text-sm font-medium text-[#5E6C84]">
+                Financial resilience score
               </p>
-              <p className={`mt-2 text-sm font-semibold ${scoreColor(result.score)}`}>
-                {result.category}
-              </p>
+
+              <div className="flex items-baseline justify-center">
+                <span className={`font-serif text-[110px] sm:text-[140px] font-normal leading-none tracking-tight ${scoreColor(result.score)}`}>
+                  {result.score}
+                </span>
+                <span className="text-xl sm:text-2xl font-light text-[#5E6C84]/50 ml-2">
+                  / 100
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-lg font-semibold text-[#1A2332]">
+                  {result.category}
+                </p>
+                <p className="text-sm text-[#5E6C84]">
+                  {result.pillars.savingsRunway.runwayMonths.toFixed(1)} months estimated runway
+                </p>
+              </div>
+
               {result.cappedByInsuranceGate && (
-                <p className="mt-2 text-xs text-red-600 bg-red-100 inline-block px-3 py-1 rounded-full">
-                  Score capped at 60 — no health insurance
+                <p className="text-sm text-[#5E6C84] pt-2">
+                  Score capped at 60 due to absence of health insurance
                 </p>
               )}
-            </div>
+            </section>
 
-            {/* Disclaimer */}
-            <p className="text-[11px] text-slate-400 text-center px-4 leading-relaxed">
-              This is a self-reported estimate, not financial advice. It doesn't connect to your bank or verify these numbers — it's meant to help you think about your resilience, not replace a financial advisor.
-            </p>
-
-            {/* Pillar breakdown */}
-            <div>
-              <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-3">
-                Pillar Breakdown
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <PillarCard
-                  name="Income Stability"
-                  score={result.pillars.incomeStability.score}
-                  weight={result.pillars.incomeStability.weight}
-                  note={result.pillars.incomeStability.note}
-                  methodology="Variable and gig income are scored lower because unpredictable cash flow reduces resilience even at high income levels — based on Dvara Research's Financial Health Survey findings on income volatility."
-                />
-                <PillarCard
-                  name="Savings Runway"
-                  score={result.pillars.savingsRunway.score}
-                  weight={result.pillars.savingsRunway.weight}
-                  note={result.pillars.savingsRunway.note}
-                  methodology="Gold is discounted ~22% and chit funds ~35% to reflect real liquidation costs (making charges, RBI gold loan LTV limits, and illiquidity outside auction cycles), not their full market value."
-                />
-                <PillarCard
-                  name="Debt Burden"
-                  score={result.pillars.debtBurden.score}
-                  weight={result.pillars.debtBurden.weight}
-                  note={result.pillars.debtBurden.note}
-                  methodology="Scored using FOIR (Fixed Obligation to Income Ratio); high-interest revolving debt like credit cards or BNPL is penalized further as a sign of cash-flow strain."
-                />
-                <PillarCard
-                  name="Shock Defense"
-                  score={result.pillars.shockDefense.score}
-                  weight={result.pillars.shockDefense.weight}
-                  note={result.pillars.shockDefense.note}
-                  methodology="Health insurance is weighted heavily because over 62% of medical costs in India are paid out-of-pocket — a single medical event can erase years of savings without it."
-                />
-              </div>
-            </div>
-
-            {/* Raw facts and Debugger */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Under the Hood
-                </h3>
-                <button 
-                  onClick={() => setDebugMode(!debugMode)}
-                  className="text-xs text-indigo-500 hover:text-indigo-600 font-medium"
-                >
-                  {debugMode ? "Hide Debugger" : "Developer Mode"}
-                </button>
-              </div>
-              
-              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                <div>
-                  <dt className="text-slate-500 text-xs">Effective Liquid Assets</dt>
-                  <dd className="font-medium text-slate-800">
-                    ₹{result.rawFacts.effectiveLiquidAssets.toLocaleString("en-IN")}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-slate-500 text-xs">Gold Haircut Applied</dt>
-                  <dd className="font-medium text-slate-800">
-                    ₹{result.rawFacts.goldHaircutApplied.toLocaleString("en-IN")}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-slate-500 text-xs">Adjusted Monthly Burn</dt>
-                  <dd className="font-medium text-slate-800">
-                    ₹{result.rawFacts.dependencyAdjustedBurnRate.toLocaleString("en-IN")}
-                  </dd>
-                </div>
-              </dl>
-
-              {debugMode && (
-                <div className="mt-6 pt-6 border-t border-slate-200 space-y-6">
-                  <h4 className="text-sm font-semibold text-slate-700">How This Score Was Built</h4>
-
-                  {/* Pillar scores */}
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Pillar Scores</p>
-                    <div className="space-y-2">
-                      {[
-                        { label: "Income Stability", pillar: result.pillars.incomeStability },
-                        { label: "Savings Runway",   pillar: result.pillars.savingsRunway },
-                        { label: "Debt Burden",      pillar: result.pillars.debtBurden },
-                        { label: "Shock Defense",    pillar: result.pillars.shockDefense },
-                      ].map(({ label, pillar }) => (
-                        <div key={label} className="bg-slate-50 rounded-lg p-3 text-xs">
-                          <div className="flex items-baseline justify-between mb-1">
-                            <span className="font-semibold text-slate-700">{label}</span>
-                            <span className={`font-bold tabular-nums ${scoreColor(pillar.score)}`}>
-                              {pillar.score} / 100
-                              <span className="text-slate-400 font-normal ml-1">(weight: {(pillar.weight * 100).toFixed(0)}%)</span>
-                            </span>
-                          </div>
-                          <p className="text-slate-500 leading-relaxed">{pillar.note}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Final score assembly */}
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Score Assembly</p>
-                    <div className="bg-slate-50 rounded-lg p-3 text-xs space-y-1 text-slate-600">
-                      <div className="flex justify-between">
-                        <span>Weighted sum</span>
-                        <span className="font-mono font-semibold text-slate-800">
-                          {(
-                            result.pillars.incomeStability.score * result.pillars.incomeStability.weight +
-                            result.pillars.savingsRunway.score   * result.pillars.savingsRunway.weight +
-                            result.pillars.debtBurden.score      * result.pillars.debtBurden.weight +
-                            result.pillars.shockDefense.score    * result.pillars.shockDefense.weight
-                          ).toFixed(1)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Insurance gate applied?</span>
-                        <span className={`font-semibold ${result.cappedByInsuranceGate ? "text-red-600" : "text-emerald-600"}`}>
-                          {result.cappedByInsuranceGate ? "Yes — capped at 60" : "No"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
-                        <span className="font-semibold text-slate-700">Final Score</span>
-                        <span className={`font-bold text-base tabular-nums ${scoreColor(result.score)}`}>{result.score} ({result.category})</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Input profile */}
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Input Profile</p>
-                    <div className="bg-slate-50 rounded-lg p-3 text-xs grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-slate-600">
-                      <div className="flex justify-between"><span>Monthly Income</span><span className="font-mono font-semibold text-slate-800">₹{input.monthlyIncome.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>Essential Expenses</span><span className="font-mono font-semibold text-slate-800">₹{input.monthlyEssentialExpenses.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>Income Stability</span><span className="font-semibold text-slate-800">{input.incomeStability}</span></div>
-                      <div className="flex justify-between"><span>Liquid Savings</span><span className="font-mono font-semibold text-slate-800">₹{input.liquidSavings.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>Gold (self-reported)</span><span className="font-mono font-semibold text-slate-800">₹{input.goldValueSelfReported.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>Chit Fund Value</span><span className="font-mono font-semibold text-slate-800">₹{input.chitFundValue.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>Concentrated Asset</span><span className="font-mono font-semibold text-slate-800">₹{input.concentratedAssetValue.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>Diversified Investments</span><span className="font-mono font-semibold text-slate-800">₹{input.diversifiedInvestments.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>Monthly Debt Payments</span><span className="font-mono font-semibold text-slate-800">₹{input.monthlyDebtPayments.toLocaleString("en-IN")}</span></div>
-                      <div className="flex justify-between"><span>High-Interest Revolving Debt</span><span className={`font-semibold ${input.hasHighInterestRevolvingDebt ? "text-red-600" : "text-emerald-600"}`}>{input.hasHighInterestRevolvingDebt ? "Yes" : "No"}</span></div>
-                      <div className="flex justify-between"><span>Dependents</span><span className="font-semibold text-slate-800">{input.dependentsCount}</span></div>
-                      <div className="flex justify-between"><span>Health Insurance</span><span className={`font-semibold ${input.hasHealthInsurance ? "text-emerald-600" : "text-red-600"}`}>{input.hasHealthInsurance ? "Yes" : "No"}</span></div>
-                      <div className="flex justify-between"><span>Term Life Insurance</span><span className={`font-semibold ${input.hasTermLifeInsurance ? "text-emerald-600" : "text-red-600"}`}>{input.hasTermLifeInsurance ? "Yes" : "No"}</span></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* AI explanation */}
+            {/* 2. AI EXPLANATION — always visible */}
             {loading && (
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <div className="flex items-center gap-3">
-                  <div className="h-4 w-4 rounded-full border-2 border-slate-300 border-t-slate-700 animate-spin" />
-                  <p className="text-sm text-slate-500">
-                    Generating your personalised explanation…
-                  </p>
-                </div>
+              <div className="py-6 border-b border-[#E8E3DA] flex items-center gap-3 text-base text-[#5E6C84]">
+                <div className="h-4 w-4 rounded-full border-2 border-[#E8E3DA] border-t-[#2D5A4A] animate-spin" />
+                <span>Generating personalized explanation…</span>
               </div>
             )}
 
             {explanation && (
-              <>
-                <div className="bg-white rounded-xl border border-slate-200 p-6">
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                    What This Means For You
-                  </h3>
-                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+              <section className="py-10 border-b border-[#E8E3DA] space-y-4">
+                <h3 className="text-sm font-semibold text-[#5E6C84]">
+                  What this means for you
+                </h3>
+                <div className="border-l-2 border-[#1A2332] pl-6 py-1">
+                  <p className="text-[15px] text-[#1A2332] leading-relaxed whitespace-pre-line font-normal">
                     {explanation}
                   </p>
                 </div>
+              </section>
+            )}
 
-                {(() => {
-                  const ranked = rankAllInterventions(input, result);
-                  const topInterventions = ranked.slice(0, 3);
-                  
-                  if (topInterventions.length > 0) {
+            {/* 3. TOP INTERVENTION SUMMARY — always visible, single line */}
+            {(() => {
+              const ranked = rankAllInterventions(input, result);
+              if (ranked.length === 0) return null;
+              const top = ranked[0];
+              return (
+                <div className="py-6 border-b border-[#E8E3DA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-[#5E6C84] mb-1">Your highest-impact next step</p>
+                    <p className="text-sm text-[#1A2332]">
+                      {top.fixDescription}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 text-sm font-mono">
+                    <span className="text-[#5E6C84] line-through">{top.currentScore}</span>
+                    <span className="text-[#5E6C84]">→</span>
+                    <span className="font-bold text-[#1A2332]">{top.projectedScore}</span>
+                    <span className="text-[#2D5A4A] font-semibold text-xs">+{top.scoreDelta} pts</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 4. SHARE BUTTON — always visible (once explanation loads) */}
+            {explanation && (
+              <div className="py-8 border-b border-[#E8E3DA] flex justify-start">
+                <button
+                  type="button"
+                  onClick={handleDownloadShareCard}
+                  disabled={downloading}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-[#2D5A4A] text-white text-xs font-medium
+                             hover:bg-[#24493C] active:bg-[#1C3A30] disabled:opacity-50 disabled:cursor-not-allowed
+                             transition cursor-pointer shadow-xs"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {downloading ? "Generating share card…" : "Download share card"}
+                </button>
+              </div>
+            )}
+
+            {/* ── COLLAPSIBLE SECTIONS ── */}
+            <div className="space-y-0 pt-4">
+
+              {/* 5. PILLAR BREAKDOWN */}
+              <CollapsibleSection title="See what's driving your score">
+                <div className="divide-y divide-[#E8E3DA]">
+                  <PillarItem
+                    name="Income stability"
+                    score={result.pillars.incomeStability.score}
+                    weight={result.pillars.incomeStability.weight}
+                    note={result.pillars.incomeStability.note}
+                    methodology="Salaried fixed income provides strong predictability. Variable and gig earnings introduce higher fragility under sudden loss."
+                  />
+                  <PillarItem
+                    name="Savings runway"
+                    score={result.pillars.savingsRunway.score}
+                    weight={result.pillars.savingsRunway.weight}
+                    note={result.pillars.savingsRunway.note}
+                    methodology="Calculated from effective liquid assets divided by dependency-adjusted essential burn. Gold (~22%) and chit funds (~35%) reflect liquidation haircuts."
+                  />
+                  <PillarItem
+                    name="Debt burden"
+                    score={result.pillars.debtBurden.score}
+                    weight={result.pillars.debtBurden.weight}
+                    note={result.pillars.debtBurden.note}
+                    methodology="Evaluated using Fixed Obligation to Income Ratio (FOIR). Revolving high-interest credit card or BNPL debt triggers an additional 40% penalty."
+                  />
+                  <PillarItem
+                    name="Shock defense"
+                    score={result.pillars.shockDefense.score}
+                    weight={result.pillars.shockDefense.weight}
+                    note={result.pillars.shockDefense.note}
+                    methodology="Assesses catastrophic protection. Health insurance is the primary safety net preventing out-of-pocket medical insolvency."
+                  />
+                </div>
+              </CollapsibleSection>
+
+              {/* 6. SHOCK SIMULATOR */}
+              <CollapsibleSection title="What happens if things go wrong?">
+                <div className="space-y-6">
+                  <p className="text-sm text-[#5E6C84]">
+                    Stress-test your liquid buffer over a 6-month horizon against sudden events.
+                  </p>
+
+                  {/* Simulation buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveShock("job_loss")}
+                      className={`p-4 rounded-md text-left transition border cursor-pointer ${
+                        activeShock === "job_loss"
+                          ? "bg-white border-[#1A2332] ring-1 ring-[#1A2332]"
+                          : "bg-white/60 border-[#E8E3DA] hover:border-[#1A2332]/40"
+                      }`}
+                    >
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-sm font-semibold text-[#1A2332]">Simulate job loss</span>
+                        <span className="text-xs text-[#5E6C84] font-mono">Income = ₹0</span>
+                      </div>
+                      <p className="text-xs text-[#5E6C84] mt-1.5 leading-relaxed">
+                        Income drops to zero while living expenses and debt service continue.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveShock("medical_emergency")}
+                      className={`p-4 rounded-md text-left transition border cursor-pointer ${
+                        activeShock === "medical_emergency"
+                          ? "bg-white border-[#1A2332] ring-1 ring-[#1A2332]"
+                          : "bg-white/60 border-[#E8E3DA] hover:border-[#1A2332]/40"
+                      }`}
+                    >
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-sm font-semibold text-[#1A2332]">Simulate medical emergency</span>
+                        <span className="text-xs text-[#5E6C84] font-mono">
+                          {input.hasHealthInsurance ? "₹60k net" : "₹300k net"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#5E6C84] mt-1.5 leading-relaxed">
+                        {input.hasHealthInsurance
+                          ? "₹60,000 out-of-pocket shock (80% covered by health policy)."
+                          : "₹3,00,000 catastrophic shock without health insurance."}
+                      </p>
+                    </button>
+                  </div>
+
+                  {/* Simulation Result */}
+                  {activeShock && (() => {
+                    const timeline = simulateShock(input, activeShock);
+                    const maxBalance = Math.max(...timeline.map((t) => t.liquidBalance), 1);
+                    const exhaustedItem = timeline.find((t) => t.status === "exhausted");
+                    const criticalItem = timeline.find((t) => t.status === "critical");
+
                     return (
-                      <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-6 mt-6">
-                        <h3 className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-3">
-                          High-Impact Interventions
-                        </h3>
-                        <p className="text-sm text-emerald-900 mb-6">
-                          Based on your specific financial profile, here are the most effective steps to increase your resilience:
-                        </p>
-                        
-                        <div className="space-y-4">
-                          {topInterventions.map((projection, i) => (
-                            <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-lg border border-emerald-100 shadow-sm">
-                              <p className="text-sm text-slate-700 flex-1">
-                                {i + 1}. By <span className="font-semibold text-emerald-800">{projection.fixDescription}</span>...
-                              </p>
-                              
-                              <div className="flex items-center gap-4 shrink-0">
-                                <div className="text-center">
-                                  <p className="text-2xl font-bold text-slate-400 line-through decoration-emerald-200/50">{projection.currentScore}</p>
+                      <div className="space-y-4 pt-2">
+                        {/* Status Note */}
+                        <div className={`p-3.5 bg-white border border-[#E8E3DA] rounded-md text-sm text-[#1A2332] leading-relaxed border-l-4 ${
+                            exhaustedItem ? "border-l-[#B54834]" :
+                            criticalItem  ? "border-l-[#1A2332]/40" :
+                            "border-l-[#2D5A4A]"
+                          }`}>
+                          {exhaustedItem ? (
+                            <span>
+                              <strong className="font-semibold">Reserves exhausted in month {exhaustedItem.month}.</strong>{" "}
+                              {activeShock === "job_loss"
+                                ? "Effective liquid savings hit zero. Debt payments and basic living expenses can no longer be serviced without borrowing."
+                                : "The medical shock wiped out liquid reserves immediately in month 0."}
+                            </span>
+                          ) : criticalItem ? (
+                            <span>
+                              <strong className="font-semibold">Critical threshold reached in month {criticalItem.month}.</strong>{" "}
+                              Liquid balance falls below 1 month of essential expenses and debt payments.
+                            </span>
+                          ) : (
+                            <span>
+                              <strong className="font-semibold text-[#2D5A4A]">Resilient defense.</strong> Liquid assets remain above critical threshold across all 6 months under this scenario.
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Progress rows */}
+                        <div className="space-y-3 pt-2">
+                          {timeline.map((point) => {
+                            const isExhausted = point.status === "exhausted";
+                            const pct = Math.max(0, Math.min(100, Math.round((point.liquidBalance / maxBalance) * 100)));
+
+                            const barColor =
+                              isExhausted ? "bg-[#B54834]" :
+                              pct >= 50   ? "bg-[#2D5A4A]" :
+                              pct >= 20   ? "bg-[#1A2332]/50" :
+                              "bg-[#B54834]";
+
+                            const textColor =
+                              isExhausted ? "text-[#B54834]" :
+                              pct >= 50   ? "text-[#2D5A4A]" :
+                              pct >= 20   ? "text-[#1A2332]" :
+                              "text-[#B54834]";
+
+                            return (
+                              <div key={point.month} className="space-y-1.5 text-sm">
+                                <div className="flex justify-between items-baseline">
+                                  <span className="text-[#5E6C84]">
+                                    {point.month === 0 ? "Month 0 (Shock event)" : `Month ${point.month}`}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`font-mono font-semibold ${textColor}`}>
+                                      ₹{point.liquidBalance.toLocaleString("en-IN")}
+                                    </span>
+                                    <span className="text-[11px] text-[#5E6C84] capitalize">
+                                      · {point.status}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="text-emerald-400">
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-3xl font-bold text-emerald-600">+{projection.scoreDelta}</p>
-                                </div>
-                                <div className="text-center ml-2">
-                                  <p className="text-[10px] text-emerald-700 uppercase font-semibold">New Score</p>
-                                  <p className="text-xl font-bold text-emerald-600">{projection.projectedScore}</p>
+                                <div className="w-full bg-[#E8E3DA]/60 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
-                  }
-                  return null;
-                })()}
-                
-                <div className="pt-6 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={handleDownloadShareCard}
-                    disabled={downloading}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium
-                               hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed
-                               transition cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    {downloading ? "Generating…" : "Download Share Card"}
-                  </button>
+                  })()}
                 </div>
-              </>
-            )}
+              </CollapsibleSection>
+
+              {/* 7. COUNTERFACTUAL TWIN + FULL INTERVENTIONS */}
+              {(() => {
+                const ranked = rankAllInterventions(input, result);
+                if (ranked.length === 0) return null;
+                const top = ranked[0];
+                const topInterventions = ranked.slice(0, 3);
+                const afterResult = computeFragilityScore(top.fixedInput);
+
+                const runwayImproved = afterResult.pillars.savingsRunway.runwayMonths > result.pillars.savingsRunway.runwayMonths;
+                const debtImproved = afterResult.pillars.debtBurden.score > result.pillars.debtBurden.score;
+                const shockImproved = afterResult.pillars.shockDefense.score > result.pillars.shockDefense.score;
+                const healthImproved = !input.hasHealthInsurance && top.fixedInput.hasHealthInsurance;
+                const termImproved = !input.hasTermLifeInsurance && top.fixedInput.hasTermLifeInsurance;
+
+                return (
+                  <CollapsibleSection title="Compare your future if you fix this">
+                    <div className="space-y-10">
+
+                      {/* All interventions list */}
+                      <div className="space-y-3">
+                        <p className="text-sm text-[#5E6C84]">Highest-leverage steps to strengthen your resilience score.</p>
+                        {topInterventions.map((projection, i) => (
+                          <div
+                            key={i}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-md bg-white border border-[#E8E3DA]"
+                          >
+                            <p className="text-sm text-[#1A2332] flex-1">
+                              <span className="font-semibold">{i + 1}.</span> By{" "}
+                              <span className="font-medium text-[#1A2332] underline underline-offset-2 decoration-[#E8E3DA]">
+                                {projection.fixDescription}
+                              </span>
+                            </p>
+                            <div className="flex items-center gap-3 shrink-0 text-sm">
+                              <span className="text-[#5E6C84] line-through font-mono">{projection.currentScore}</span>
+                              <span className="text-[#5E6C84]">→</span>
+                              <span className="font-bold text-[#1A2332] font-mono">{projection.projectedScore}</span>
+                              <span className="text-[#2D5A4A] font-semibold text-xs">+{projection.scoreDelta} pts</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Counterfactual comparison */}
+                      <div className="space-y-5">
+                        <div>
+                          <h4 className="text-base font-semibold text-[#1A2332]">
+                            You today vs. you after fixing your weakest link
+                          </h4>
+                          <p className="text-sm text-[#5E6C84] mt-1">
+                            Targeted action: <span className="font-medium text-[#1A2332]">{top.fixDescription}</span> (+{top.scoreDelta} pts).
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          {/* Today */}
+                          <div className="bg-white/60 rounded-md p-5 border border-[#E8E3DA] space-y-4">
+                            <div className="flex items-baseline justify-between pb-3 border-b border-[#E8E3DA]">
+                              <span className="text-xs font-semibold text-[#5E6C84]">Today</span>
+                              <span className={`text-lg font-bold font-mono ${scoreColor(result.score)}`}>
+                                {result.score} <span className="text-xs font-normal text-[#5E6C84]">({result.category})</span>
+                              </span>
+                            </div>
+                            <dl className="space-y-2.5 text-xs">
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Savings runway</dt><dd className="font-mono text-[#1A2332]">{result.pillars.savingsRunway.runwayMonths.toFixed(1)} mo</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Debt burden score</dt><dd className="font-mono text-[#1A2332]">{result.pillars.debtBurden.score}/100</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Shock defense score</dt><dd className="font-mono text-[#1A2332]">{result.pillars.shockDefense.score}/100</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Health insurance</dt><dd className="text-[#1A2332]">{input.hasHealthInsurance ? "Yes" : "No"}</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Term life insurance</dt><dd className="text-[#1A2332]">{input.hasTermLifeInsurance ? "Yes" : "No"}</dd></div>
+                            </dl>
+                          </div>
+
+                          {/* After Fixing */}
+                          <div className="bg-white rounded-md p-5 border border-[#E8E3DA] space-y-4">
+                            <div className="flex items-baseline justify-between pb-3 border-b border-[#E8E3DA]">
+                              <span className="text-xs font-semibold text-[#1A2332]">After fixing weakest link</span>
+                              <span className={`text-lg font-bold font-mono ${scoreColor(afterResult.score)}`}>
+                                {afterResult.score} <span className="text-xs font-normal text-[#5E6C84]">({afterResult.category})</span>
+                              </span>
+                            </div>
+                            <dl className="space-y-2.5 text-xs">
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Savings runway</dt><dd className={`font-mono ${runwayImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.savingsRunway.runwayMonths.toFixed(1)} mo{runwayImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{(afterResult.pillars.savingsRunway.runwayMonths - result.pillars.savingsRunway.runwayMonths).toFixed(1)})</span>}</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Debt burden score</dt><dd className={`font-mono ${debtImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.debtBurden.score}/100{debtImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{afterResult.pillars.debtBurden.score - result.pillars.debtBurden.score})</span>}</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Shock defense score</dt><dd className={`font-mono ${shockImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.shockDefense.score}/100{shockImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{afterResult.pillars.shockDefense.score - result.pillars.shockDefense.score})</span>}</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Health insurance</dt><dd className={healthImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}>{top.fixedInput.hasHealthInsurance ? "Yes" : "No"}{healthImproved && <span className="text-[11px] ml-1 font-normal">(Fixed)</span>}</dd></div>
+                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Term life insurance</dt><dd className={termImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}>{top.fixedInput.hasTermLifeInsurance ? "Yes" : "No"}{termImproved && <span className="text-[11px] ml-1 font-normal">(Fixed)</span>}</dd></div>
+                            </dl>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* 8. UNDER THE HOOD / DEBUGGER */}
+              <CollapsibleSection title="See the full math behind this">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-[#5E6C84]">Raw arithmetic, haircuts, and inputs behind the score.</p>
+                    <button
+                      type="button"
+                      onClick={() => setDebugMode(!debugMode)}
+                      className="text-xs text-[#1A2332] hover:underline underline-offset-2 font-medium"
+                    >
+                      {debugMode ? "Hide details" : "Inspect arithmetic"}
+                    </button>
+                  </div>
+
+                  <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div className="bg-white/60 p-3.5 rounded border border-[#E8E3DA]">
+                      <dt className="text-[#5E6C84]">Effective liquid assets</dt>
+                      <dd className="font-mono font-semibold text-[#1A2332] mt-1">
+                        ₹{result.rawFacts.effectiveLiquidAssets.toLocaleString("en-IN")}
+                      </dd>
+                    </div>
+                    <div className="bg-white/60 p-3.5 rounded border border-[#E8E3DA]">
+                      <dt className="text-[#5E6C84]">Gold haircut applied</dt>
+                      <dd className="font-mono font-semibold text-[#1A2332] mt-1">
+                        ₹{result.rawFacts.goldHaircutApplied.toLocaleString("en-IN")}
+                      </dd>
+                    </div>
+                    <div className="bg-white/60 p-3.5 rounded border border-[#E8E3DA]">
+                      <dt className="text-[#5E6C84]">Adjusted monthly burn</dt>
+                      <dd className="font-mono font-semibold text-[#1A2332] mt-1">
+                        ₹{result.rawFacts.dependencyAdjustedBurnRate.toLocaleString("en-IN")}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {debugMode && (
+                    <div className="pt-4 space-y-4 border-t border-[#E8E3DA] text-xs">
+                      <div>
+                        <h4 className="font-semibold text-[#1A2332] mb-2">Score assembly</h4>
+                        <div className="bg-white rounded p-3.5 border border-[#E8E3DA] space-y-1.5 text-[#5E6C84]">
+                          <div className="flex justify-between">
+                            <span>Weighted pillar sum</span>
+                            <span className="font-mono text-[#1A2332]">
+                              {(
+                                result.pillars.incomeStability.score * result.pillars.incomeStability.weight +
+                                result.pillars.savingsRunway.score * result.pillars.savingsRunway.weight +
+                                result.pillars.debtBurden.score * result.pillars.debtBurden.weight +
+                                result.pillars.shockDefense.score * result.pillars.shockDefense.weight
+                              ).toFixed(1)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Insurance gate applied?</span>
+                            <span className="text-[#1A2332] font-semibold">
+                              {result.cappedByInsuranceGate ? "Yes (capped at 60)" : "No"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-t border-[#E8E3DA] pt-1 mt-1 font-semibold text-[#1A2332]">
+                            <span>Final resilience score</span>
+                            <span className="font-mono font-bold">{result.score} / 100</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-[#1A2332] mb-2">Input profile snapshot</h4>
+                        <div className="bg-white rounded p-3.5 border border-[#E8E3DA] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-[#5E6C84]">
+                          <div className="flex justify-between"><span>Monthly income:</span><span className="font-mono text-[#1A2332]">₹{input.monthlyIncome.toLocaleString("en-IN")}</span></div>
+                          <div className="flex justify-between"><span>Essential expenses:</span><span className="font-mono text-[#1A2332]">₹{input.monthlyEssentialExpenses.toLocaleString("en-IN")}</span></div>
+                          <div className="flex justify-between"><span>Income stability:</span><span className="text-[#1A2332]">{input.incomeStability}</span></div>
+                          <div className="flex justify-between"><span>Liquid savings:</span><span className="font-mono text-[#1A2332]">₹{input.liquidSavings.toLocaleString("en-IN")}</span></div>
+                          <div className="flex justify-between"><span>Gold:</span><span className="font-mono text-[#1A2332]">₹{input.goldValueSelfReported.toLocaleString("en-IN")}</span></div>
+                          <div className="flex justify-between"><span>Chit funds:</span><span className="font-mono text-[#1A2332]">₹{input.chitFundValue.toLocaleString("en-IN")}</span></div>
+                          <div className="flex justify-between"><span>Debt payments:</span><span className="font-mono text-[#1A2332]">₹{input.monthlyDebtPayments.toLocaleString("en-IN")}</span></div>
+                          <div className="flex justify-between"><span>Dependents:</span><span className="text-[#1A2332]">{input.dependentsCount}</span></div>
+                          <div className="flex justify-between"><span>Health insurance:</span><span className="text-[#1A2332]">{input.hasHealthInsurance ? "Yes" : "No"}</span></div>
+                          <div className="flex justify-between"><span>Term life insurance:</span><span className="text-[#1A2332]">{input.hasTermLifeInsurance ? "Yes" : "No"}</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleSection>
+
+            </div>
 
             {error && (
-              <div className="bg-red-50 rounded-xl border border-red-200 p-4">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="bg-red-50/70 border border-red-200 rounded-md p-4 text-xs text-red-800 mt-8">
+                {error}
               </div>
             )}
+
           </div>
         )}
       </div>
@@ -722,33 +955,34 @@ export default function Home() {
       {/* Hidden share card for html-to-image (9:16 aspect ratio) */}
       {result && explanation && (
         <div className="fixed -left-[9999px] top-0 pointer-events-none">
-          <div 
+          <div
             ref={shareCardRef}
-            className={`w-[540px] flex flex-col p-12 gap-12 ${scoreBg(result.score)}`}
+            className="w-[540px] flex flex-col p-14 gap-12 bg-[#FAF8F4] border-8 border-[#1A2332]"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             <div>
-              <p className="text-sm font-semibold text-slate-500 tracking-widest uppercase mb-8">
+              <p className="text-xs font-medium text-[#5E6C84] mb-8">
                 Wealth Fragility Score
               </p>
-              
-              <div className="space-y-0">
-                <p className="text-xl font-medium text-slate-500">My Resilience Score is</p>
-                <p className={`text-[180px] leading-none font-bold tabular-nums tracking-tighter ${scoreColor(result.score)} -ml-2`}>
+
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-[#5E6C84]">Financial resilience score</p>
+                <p className={`font-serif text-[150px] leading-none font-normal tracking-tight ${scoreColor(result.score)} -ml-2`}>
                   {result.score}
                 </p>
-                <p className={`text-3xl font-semibold tracking-tight ${scoreColor(result.score)}`}>
+                <p className="text-2xl font-semibold text-[#1A2332]">
                   {result.category}
                 </p>
               </div>
 
-              <div className="mt-10 text-2xl font-medium text-slate-800 leading-snug border-l-4 border-slate-300 pl-6">
-                "{explanation.split(/(?<=\.)\s/)[0]}"
+              <div className="mt-10 text-lg font-normal text-[#1A2332] leading-relaxed border-l-2 border-[#1A2332] pl-5">
+                &ldquo;{explanation.split(/(?<=\.)\s/)[0]}&rdquo;
               </div>
             </div>
 
-            <div className="border-t border-slate-200 pt-6">
-              <p className="text-slate-800 text-2xl font-bold">Check your own score →</p>
+            <div className="border-t border-[#E8E3DA] pt-6 flex justify-between items-baseline text-[#1A2332]">
+              <p className="font-serif text-base font-normal">Check your own score</p>
+              <p className="text-xs text-[#5E6C84]">Research-backed diagnostic</p>
             </div>
           </div>
         </div>
