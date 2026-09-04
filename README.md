@@ -51,16 +51,16 @@ Next.js (App Router), TypeScript, Tailwind CSS v3, Gemini API
 
 ## Running locally
 
-\`\`\`bash
+```bash
 npm install
 npm run dev
-\`\`\`
+```
 
 ## Tests
 
-\`\`\`bash
+```bash
 npm test
-\`\`\`
+```
 
 ## Live demo
 
