@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toPng } from "html-to-image";
 import {
   computeFragilityScore,
@@ -55,6 +55,15 @@ function CurrencyField({
   onChange: (v: number) => void;
   id: string;
 }) {
+  const [displayVal, setDisplayVal] = useState<string>(value === 0 ? "" : String(value));
+
+  useEffect(() => {
+    if (value === 0 && displayVal === "") return;
+    if (Number(displayVal) !== value) {
+      setDisplayVal(value === 0 ? "" : String(value));
+    }
+  }, [value]);
+
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium text-[#1A2332]">
@@ -71,10 +80,21 @@ function CurrencyField({
           id={id}
           type="number"
           inputMode="numeric"
-          pattern="[0-9]*"
           min={0}
-          value={value || ""}
-          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          autoComplete="off"
+          value={displayVal}
+          onWheel={(e) => (e.target as HTMLElement).blur()}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) => {
+            const raw = e.target.value;
+            setDisplayVal(raw);
+            const num = Number(raw);
+            onChange(isNaN(num) ? 0 : num);
+          }}
           className="block w-full rounded-md border border-[#E8E3DA] bg-white pl-7 pr-3 py-2.5 sm:py-2 text-base sm:text-sm text-[#1A2332]
                      focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition placeholder-[#5E6C84]/40"
           placeholder="0"
@@ -97,6 +117,15 @@ function NumberField({
   onChange: (v: number) => void;
   id: string;
 }) {
+  const [displayVal, setDisplayVal] = useState<string>(value === 0 ? "" : String(value));
+
+  useEffect(() => {
+    if (value === 0 && displayVal === "") return;
+    if (Number(displayVal) !== value) {
+      setDisplayVal(value === 0 ? "" : String(value));
+    }
+  }, [value]);
+
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium text-[#1A2332]">
@@ -109,10 +138,21 @@ function NumberField({
         id={id}
         type="number"
         inputMode="numeric"
-        pattern="[0-9]*"
         min={0}
-        value={value || ""}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        autoComplete="off"
+        value={displayVal}
+        onWheel={(e) => (e.target as HTMLElement).blur()}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+          }
+        }}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setDisplayVal(raw);
+          const num = Number(raw);
+          onChange(isNaN(num) ? 0 : num);
+        }}
         className="mt-1.5 block w-full rounded-md border border-[#E8E3DA] bg-white px-3 py-2.5 sm:py-2 text-base sm:text-sm text-[#1A2332]
                    focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition placeholder-[#5E6C84]/40"
         placeholder="0"
@@ -270,6 +310,19 @@ export default function Home() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    // Disable accidental wheel/scroll number changes on all number inputs
+    const handleWheel = (e: WheelEvent) => {
+      const active = document.activeElement;
+      if (active && active.tagName === "INPUT" && (active as HTMLInputElement).type === "number") {
+        e.preventDefault();
+        (active as HTMLElement).blur();
+      }
+    };
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, []);
+
   async function handleDownloadShareCard() {
     if (!shareCardRef.current) return;
     try {
@@ -355,7 +408,7 @@ export default function Home() {
         </header>
 
         {/* Diagnostic Form */}
-        <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-12">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-8 sm:space-y-12">
           {/* Income */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5E6C84] mb-3.5 sm:mb-5 pb-1 border-b border-[#E8E3DA] flex items-center justify-between">
