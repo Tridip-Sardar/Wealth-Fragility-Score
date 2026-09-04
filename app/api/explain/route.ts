@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { computeFragilityScore, FragilityInput } from "@/lib/fragilityScore";
+import { computeFragilityScore } from "@/lib/fragilityScore";
 import { getScoreExplanation } from "@/lib/explainScore";
+import { validateFragilityInput } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
     try {
-        const body: FragilityInput = await request.json();
+        const rawJson = await request.json();
+        const validation = validateFragilityInput(rawJson);
 
+        if (!validation.success || !validation.data) {
+            return NextResponse.json(
+                { error: validation.error || "Invalid input payload." },
+                { status: 400 }
+            );
+        }
+
+        const body = validation.data;
         const result = computeFragilityScore(body);
 
         const apiKey = process.env.GEMINI_API_KEY;
