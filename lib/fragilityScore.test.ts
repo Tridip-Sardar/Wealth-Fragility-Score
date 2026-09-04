@@ -47,4 +47,32 @@ describe('Fragility Engine', () => {
         
         expect(dirtyResult.pillars.debtBurden.score).toBeLessThan(cleanResult.pillars.debtBurden.score);
     });
+
+    test('Scores zero income as 0 for income stability even if salaried_fixed', () => {
+        const zeroIncomeInput = { ...baseInput, monthlyIncome: 0 };
+        const result = computeFragilityScore(zeroIncomeInput);
+        expect(result.pillars.incomeStability.score).toBe(0);
+    });
+
+    test('Scores zero income with debt as 0 debt burden (not 100)', () => {
+        const inputWithDebtNoIncome = { ...baseInput, monthlyIncome: 0, monthlyDebtPayments: 15000 };
+        const result = computeFragilityScore(inputWithDebtNoIncome);
+        expect(result.pillars.debtBurden.score).toBe(0);
+        expect(result.warnings).toContain("Unserviceable debt: You have active monthly debt obligations with zero reported income.");
+    });
+
+    test('Identifies and caps acute insolvency when monthly burn exceeds income with no liquid reserves', () => {
+        const insolventInput: FragilityInput = {
+            ...baseInput,
+            monthlyIncome: 30000,
+            monthlyEssentialExpenses: 25000,
+            monthlyDebtPayments: 20000, // commitments = 45k, net cashflow = -15k/mo
+            liquidSavings: 5000, // less than 15k deficit
+        };
+        const result = computeFragilityScore(insolventInput);
+        expect(result.isInsolvent).toBe(true);
+        expect(result.score).toBeLessThanOrEqual(30);
+        expect(result.category).toBe('Fragile');
+        expect(result.warnings?.some(w => w.includes("Acute monthly deficit"))).toBe(true);
+    });
 });

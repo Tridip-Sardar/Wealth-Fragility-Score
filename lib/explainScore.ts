@@ -26,7 +26,9 @@ Their computed score: ${result.score}/100 (${result.category})
 - Savings runway pillar: ${result.pillars.savingsRunway.score}/100 — ${result.pillars.savingsRunway.note}
 - Debt burden pillar: ${result.pillars.debtBurden.score}/100 — ${result.pillars.debtBurden.note}
 - Shock defense pillar: ${result.pillars.shockDefense.score}/100 — ${result.pillars.shockDefense.note}
-${result.cappedByInsuranceGate ? "- Note: their score was capped at 60 because they lack health insurance, regardless of other strengths — this must be explained as the dominant issue." : ""}`;
+${result.cappedByInsuranceGate ? "- Note: their score was capped at 60 because they lack health insurance, regardless of other strengths — this must be explained as the dominant issue." : ""}
+${result.warnings && result.warnings.length > 0 ? `- Critical profile warnings: ${result.warnings.join("; ")}` : ""}
+${result.isInsolvent ? "- Note: user is operating at an acute monthly cash-flow deficit with insufficient reserves to cover the shortfall — this must be prioritized as an immediate emergency." : ""}`;
 
     return { systemInstruction, prompt };
 }

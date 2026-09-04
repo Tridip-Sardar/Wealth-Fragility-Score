@@ -40,10 +40,14 @@ export interface FragilityBreakdown {
         shockDefense: { score: number; weight: number; note: string };
     };
     cappedByInsuranceGate: boolean;
+    cappedByInsolvency?: boolean;
+    isInsolvent?: boolean;
+    warnings?: string[];
     rawFacts: {
         effectiveLiquidAssets: number;
         goldHaircutApplied: number;
         dependencyAdjustedBurnRate: number;
+        netMonthlyCashflow?: number;
     };
 }
 
@@ -53,6 +57,9 @@ const CONCENTRATED_ASSET_LIQUIDITY_HAIRCUT = 0.6; // e.g. property — technical
 export const DEPENDENCY_BURN_MULTIPLIER = 0.18; // each dependent adds ~18% to effective monthly burn rate
 
 function scoreIncomeStability(input: FragilityInput): number {
+    if (input.monthlyIncome <= 0) {
+        return 0; // Zero income provides no income stability regardless of classification
+    }
     switch (input.incomeStability) {
         case "salaried_fixed":
             return 100;
@@ -83,11 +90,12 @@ export function computeDependencyAdjustedBurnRate(input: FragilityInput): number
 
 function scoreSavingsRunway(input: FragilityInput) {
     const { effectiveLiquidAssets } = computeEffectiveLiquidAssets(input);
-
     const dependencyAdjustedBurnRate = computeDependencyAdjustedBurnRate(input);
 
     const runwayMonths =
-        dependencyAdjustedBurnRate > 0 ? effectiveLiquidAssets / dependencyAdjustedBurnRate : 0;
+        dependencyAdjustedBurnRate > 0 && effectiveLiquidAssets > 0
+            ? effectiveLiquidAssets / dependencyAdjustedBurnRate
+            : 0;
 
     let score: number;
     if (runwayMonths >= 12) score = 100;
@@ -98,7 +106,13 @@ function scoreSavingsRunway(input: FragilityInput) {
 }
 
 function scoreDebtBurden(input: FragilityInput): number {
-    const foir = input.monthlyIncome > 0 ? input.monthlyDebtPayments / input.monthlyIncome : 0;
+    if (input.monthlyIncome <= 0) {
+        // Zero income: debt payments cannot be serviced out of cashflow.
+        // If zero debt and zero income, cannot establish credit resilience.
+        return 0;
+    }
+
+    const foir = input.monthlyDebtPayments / input.monthlyIncome;
 
     let score: number;
     if (foir <= 0.2) score = 100;
@@ -124,6 +138,30 @@ export function computeFragilityScore(input: FragilityInput): FragilityBreakdown
     const shockScore = scoreShockDefense(input);
     const { effectiveLiquidAssets, goldEffective } = computeEffectiveLiquidAssets(input);
 
+    const totalMonthlyCommitments = input.monthlyEssentialExpenses + input.monthlyDebtPayments;
+    const netMonthlyCashflow = input.monthlyIncome - totalMonthlyCommitments;
+    const warnings: string[] = [];
+
+    if (input.monthlyIncome > 0 && input.monthlyDebtPayments >= input.monthlyIncome) {
+        warnings.push("Critical debt burden: Monthly debt payments equal or exceed 100% of your take-home income.");
+    } else if (input.monthlyIncome <= 0 && input.monthlyDebtPayments > 0) {
+        warnings.push("Unserviceable debt: You have active monthly debt obligations with zero reported income.");
+    }
+
+    let isInsolvent = false;
+    let cappedByInsolvency = false;
+
+    if (netMonthlyCashflow < 0) {
+        const monthlyDeficit = Math.abs(netMonthlyCashflow);
+        if (effectiveLiquidAssets < monthlyDeficit) {
+            isInsolvent = true;
+            warnings.push("Acute monthly deficit: Living expenses and debt payments exceed your monthly income, with less than 1 month of liquid buffer to fund the shortfall.");
+        } else {
+            const bufferMonths = (effectiveLiquidAssets / monthlyDeficit).toFixed(1);
+            warnings.push(`Operating at a monthly deficit of ₹${monthlyDeficit.toLocaleString("en-IN")}. Current liquid reserves provide approximately ${bufferMonths} months of buffer.`);
+        }
+    }
+
     const weights = {
         incomeStability: 0.25,
         savingsRunway: 0.35,
@@ -136,6 +174,12 @@ export function computeFragilityScore(input: FragilityInput): FragilityBreakdown
         runway.score * weights.savingsRunway +
         debtScore * weights.debtBurden +
         shockScore * weights.shockDefense;
+
+    // Acute insolvency cap: If cashflow negative with no liquid reserves, cap at Fragile (max 30)
+    if (isInsolvent && weightedScore > 30) {
+        weightedScore = 30;
+        cappedByInsolvency = true;
+    }
 
     let cappedByInsuranceGate = false;
     if (!input.hasHealthInsurance && weightedScore > 60) {
@@ -156,11 +200,13 @@ export function computeFragilityScore(input: FragilityInput): FragilityBreakdown
                 score: incomeScore,
                 weight: weights.incomeStability,
                 note:
-                    input.incomeStability === "salaried_fixed"
-                        ? "Stable, predictable income — a strong foundation."
-                        : input.incomeStability === "salaried_variable"
-                            ? "Variable salaried income adds unpredictability to your resilience."
-                            : "Business/gig income is the least predictable — resilience must come from savings, not income certainty.",
+                    input.monthlyIncome <= 0
+                        ? "Zero reported income. Resilience cannot be established without a cash-generating base."
+                        : input.incomeStability === "salaried_fixed"
+                            ? "Stable, predictable income — a strong foundation."
+                            : input.incomeStability === "salaried_variable"
+                                ? "Variable salaried income adds unpredictability to your resilience."
+                                : "Business/gig income is the least predictable — resilience must come from savings, not income certainty.",
             },
             savingsRunway: {
                 score: runway.score,
@@ -171,9 +217,16 @@ export function computeFragilityScore(input: FragilityInput): FragilityBreakdown
             debtBurden: {
                 score: debtScore,
                 weight: weights.debtBurden,
-                note: input.hasHighInterestRevolvingDebt
-                    ? "High-interest revolving debt (credit card/BNPL) is actively eroding your resilience."
-                    : "Debt load assessed against income via FOIR.",
+                note:
+                    input.monthlyIncome <= 0 && input.monthlyDebtPayments > 0
+                        ? "Active debt commitments with zero income create immediate default vulnerability."
+                        : input.monthlyIncome <= 0
+                            ? "Zero debt assessed, but zero income foundation."
+                            : input.hasHighInterestRevolvingDebt
+                                ? "High-interest revolving debt (credit card/BNPL) is actively eroding your resilience."
+                                : input.monthlyDebtPayments >= input.monthlyIncome
+                                    ? "Debt payments consume 100%+ of your income (FOIR ≥ 1.0)."
+                                    : "Debt load assessed against income via FOIR.",
             },
             shockDefense: {
                 score: shockScore,
@@ -187,10 +240,14 @@ export function computeFragilityScore(input: FragilityInput): FragilityBreakdown
             },
         },
         cappedByInsuranceGate,
+        cappedByInsolvency,
+        isInsolvent,
+        warnings,
         rawFacts: {
             effectiveLiquidAssets: Math.round(effectiveLiquidAssets),
             goldHaircutApplied: Math.round(input.goldValueSelfReported - goldEffective),
             dependencyAdjustedBurnRate: Math.round(runway.dependencyAdjustedBurnRate),
+            netMonthlyCashflow: Math.round(netMonthlyCashflow),
         },
     };
 }

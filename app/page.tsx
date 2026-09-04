@@ -64,16 +64,18 @@ function CurrencyField({
         <p className="text-xs text-[#5E6C84] mt-0.5">{sublabel}</p>
       )}
       <div className="mt-1.5 relative">
-        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#5E6C84] text-sm font-mono">
+        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#5E6C84] text-base sm:text-sm font-mono pointer-events-none">
           ₹
         </span>
         <input
           id={id}
           type="number"
+          inputMode="numeric"
+          pattern="[0-9]*"
           min={0}
           value={value || ""}
           onChange={(e) => onChange(Number(e.target.value) || 0)}
-          className="block w-full rounded-md border border-[#E8E3DA] bg-white pl-7 pr-3 py-2 text-sm text-[#1A2332]
+          className="block w-full rounded-md border border-[#E8E3DA] bg-white pl-7 pr-3 py-2.5 sm:py-2 text-base sm:text-sm text-[#1A2332]
                      focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition placeholder-[#5E6C84]/40"
           placeholder="0"
         />
@@ -106,10 +108,12 @@ function NumberField({
       <input
         id={id}
         type="number"
+        inputMode="numeric"
+        pattern="[0-9]*"
         min={0}
         value={value || ""}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="mt-1.5 block w-full rounded-md border border-[#E8E3DA] bg-white px-3 py-2 text-sm text-[#1A2332]
+        className="mt-1.5 block w-full rounded-md border border-[#E8E3DA] bg-white px-3 py-2.5 sm:py-2 text-base sm:text-sm text-[#1A2332]
                    focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition placeholder-[#5E6C84]/40"
         placeholder="0"
       />
@@ -131,13 +135,16 @@ function CheckboxField({
   id: string;
 }) {
   return (
-    <label htmlFor={id} className="flex items-start gap-3 cursor-pointer group select-none">
+    <label
+      htmlFor={id}
+      className="flex items-start gap-3.5 cursor-pointer group select-none p-2.5 sm:p-2 -mx-2.5 sm:mx-0 rounded-lg hover:bg-[#1A2332]/[0.03] active:bg-[#1A2332]/[0.06] transition"
+    >
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 rounded border-[#E8E3DA] text-[#2D5A4A] 
+        className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4 rounded border-[#E8E3DA] text-[#2D5A4A] shrink-0
                    focus:ring-[#2D5A4A] focus:ring-offset-0 cursor-pointer accent-[#2D5A4A]"
       />
       <div>
@@ -145,7 +152,7 @@ function CheckboxField({
           {label}
         </span>
         {sublabel && (
-          <p className="text-xs text-[#5E6C84] mt-0.5">{sublabel}</p>
+          <p className="text-xs text-[#5E6C84] mt-0.5 leading-relaxed">{sublabel}</p>
         )}
       </div>
     </label>
@@ -170,14 +177,14 @@ function PillarItem({
   const [showMethodology, setShowMethodology] = useState(false);
 
   return (
-    <div className="py-5 border-b border-[#E8E3DA] last:border-b-0 space-y-2.5">
-      <div className="flex items-baseline justify-between">
+    <div className="py-4 sm:py-5 border-b border-[#E8E3DA] last:border-b-0 space-y-2.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-1">
         <div className="flex items-baseline gap-2">
-          <h4 className="text-base font-semibold text-[#1A2332]">{name}</h4>
-          <span className="text-sm text-[#5E6C84]">({(weight * 100).toFixed(0)}% weight)</span>
+          <h4 className="text-sm sm:text-base font-semibold text-[#1A2332]">{name}</h4>
+          <span className="text-xs sm:text-sm text-[#5E6C84]">({(weight * 100).toFixed(0)}% weight)</span>
         </div>
-        <span className={`text-lg font-bold tabular-nums font-mono ${scoreColor(score)}`}>
-          {score}<span className="text-sm text-[#5E6C84]/60 font-normal">/100</span>
+        <span className={`text-base sm:text-lg font-bold tabular-nums font-mono ${scoreColor(score)}`}>
+          {score}<span className="text-xs sm:text-sm text-[#5E6C84]/60 font-normal">/100</span>
         </span>
       </div>
 
@@ -188,19 +195,19 @@ function PillarItem({
         />
       </div>
 
-      <p className="text-sm text-[#5E6C84] leading-relaxed pt-0.5">{note}</p>
+      <p className="text-xs sm:text-sm text-[#5E6C84] leading-relaxed pt-0.5">{note}</p>
 
       <div className="pt-0.5">
         <button
           type="button"
           onClick={() => setShowMethodology(!showMethodology)}
-          className="text-xs text-[#1A2332]/70 hover:text-[#1A2332] transition underline underline-offset-2 decoration-[#E8E3DA]"
+          className="inline-flex items-center min-h-[36px] sm:min-h-0 text-xs text-[#1A2332]/70 hover:text-[#1A2332] transition underline underline-offset-2 decoration-[#E8E3DA] cursor-pointer"
         >
           {showMethodology ? "Hide methodology" : "Why this number?"}
         </button>
 
         {showMethodology && (
-          <p className="mt-2 text-sm text-[#5E6C84] bg-white/70 border border-[#E8E3DA] rounded p-3 leading-relaxed">
+          <p className="mt-2 text-xs sm:text-sm text-[#5E6C84] bg-white/70 border border-[#E8E3DA] rounded p-3 leading-relaxed">
             {methodology}
           </p>
         )}
@@ -224,13 +231,13 @@ function CollapsibleSection({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between py-5 text-left group cursor-pointer"
+        className="w-full flex items-center justify-between py-4 sm:py-5 text-left group cursor-pointer"
       >
-        <span className="text-base font-semibold text-[#1A2332] group-hover:text-[#2D5A4A] transition-colors">
+        <span className="text-sm sm:text-base font-semibold text-[#1A2332] group-hover:text-[#2D5A4A] transition-colors pr-2">
           {title}
         </span>
         <svg
-          className={`w-4 h-4 text-[#5E6C84] transition-transform duration-300 shrink-0 ml-4 ${open ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-[#5E6C84] transition-transform duration-300 shrink-0 ${open ? "rotate-180" : ""}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -241,7 +248,7 @@ function CollapsibleSection({
         className={`grid transition-all duration-300 ease-in-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="overflow-hidden">
-          <div className="pb-10">
+          <div className="pb-8 sm:pb-10">
             {children}
           </div>
         </div>
@@ -290,6 +297,20 @@ export default function Home() {
     setExplanation(null);
     setActiveShock(null);
 
+    // Validation for realistic, non-empty profiles
+    if (input.monthlyIncome <= 0 && input.monthlyEssentialExpenses <= 0) {
+      setError("Please enter your monthly income and essential living expenses to calculate your resilience score.");
+      return;
+    }
+    if (input.monthlyIncome <= 0) {
+      setError("Please enter your take-home monthly income (must be greater than ₹0).");
+      return;
+    }
+    if (input.monthlyEssentialExpenses <= 0) {
+      setError("Please enter your monthly essential expenses (food, rent, utilities).");
+      return;
+    }
+
     // Compute score client-side (instant)
     const computed = computeFragilityScore(input);
     setResult(computed);
@@ -321,26 +342,27 @@ export default function Home() {
   }
 
   return (
-    <main className="flex-1 py-14 sm:py-20 px-4 sm:px-8 lg:px-12">
+    <main className="flex-1 py-8 sm:py-16 lg:py-20 px-4 sm:px-8 lg:px-12 w-full overflow-x-hidden">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <header className="mb-14 pb-8 border-b border-[#E8E3DA]">
-          <h1 className="font-serif text-3xl sm:text-4xl font-normal text-[#1A2332] tracking-tight">
+        <header className="mb-8 sm:mb-14 pb-6 sm:pb-8 border-b border-[#E8E3DA]">
+          <h1 className="font-serif text-2xl xs:text-3xl sm:text-4xl font-normal text-[#1A2332] tracking-tight">
             Wealth Fragility Score
           </h1>
-          <p className="mt-2.5 text-sm text-[#5E6C84] leading-relaxed max-w-xl">
+          <p className="mt-2 sm:mt-2.5 text-xs sm:text-sm text-[#5E6C84] leading-relaxed max-w-xl">
             A research-backed resilience diagnostic for first-generation earners — how many months of shock can you absorb before wealth breaks?
           </p>
         </header>
 
         {/* Diagnostic Form */}
-        <form onSubmit={handleSubmit} className="space-y-12">
+        <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-12">
           {/* Income */}
           <section>
-            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
-              Income
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5E6C84] mb-3.5 sm:mb-5 pb-1 border-b border-[#E8E3DA] flex items-center justify-between">
+              <span>Income &amp; Essential Expenses</span>
+              <span className="text-[11px] font-normal normal-case tracking-normal text-[#5E6C84]">Required</span>
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <CurrencyField
                 id="monthlyIncome"
                 label="Monthly income"
@@ -356,7 +378,7 @@ export default function Home() {
                 onChange={(v) => update("monthlyEssentialExpenses", v)}
               />
             </div>
-            <div className="mt-5">
+            <div className="mt-4 sm:mt-5">
               <label htmlFor="incomeStability" className="block text-sm font-medium text-[#1A2332]">
                 Income stability
               </label>
@@ -364,7 +386,7 @@ export default function Home() {
                 id="incomeStability"
                 value={input.incomeStability}
                 onChange={(e) => update("incomeStability", e.target.value as IncomeStability)}
-                className="mt-1.5 block w-full sm:w-1/2 rounded-md border border-[#E8E3DA] bg-white px-3 py-2 text-sm text-[#1A2332]
+                className="mt-1.5 block w-full sm:w-1/2 rounded-md border border-[#E8E3DA] bg-white px-3 py-2.5 sm:py-2 text-base sm:text-sm text-[#1A2332]
                            focus:border-[#1A2332] focus:ring-1 focus:ring-[#1A2332] outline-none transition"
               >
                 <option value="salaried_fixed">Salaried — Fixed</option>
@@ -376,10 +398,10 @@ export default function Home() {
 
           {/* Assets & savings */}
           <section>
-            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5E6C84] mb-3.5 sm:mb-5 pb-1 border-b border-[#E8E3DA]">
               Assets &amp; savings
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <CurrencyField
                 id="liquidSavings"
                 label="Liquid savings"
@@ -420,10 +442,10 @@ export default function Home() {
 
           {/* Debt */}
           <section>
-            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5E6C84] mb-3.5 sm:mb-5 pb-1 border-b border-[#E8E3DA]">
               Debt
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <CurrencyField
                 id="monthlyDebtPayments"
                 label="Monthly debt payments"
@@ -432,7 +454,7 @@ export default function Home() {
                 onChange={(v) => update("monthlyDebtPayments", v)}
               />
             </div>
-            <div className="mt-5">
+            <div className="mt-4 sm:mt-5">
               <CheckboxField
                 id="hasHighInterestRevolvingDebt"
                 label="High-interest revolving debt"
@@ -445,7 +467,7 @@ export default function Home() {
 
           {/* Dependents */}
           <section>
-            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5E6C84] mb-3.5 sm:mb-5 pb-1 border-b border-[#E8E3DA]">
               Dependents
             </h2>
             <div className="w-full sm:w-1/2">
@@ -461,10 +483,10 @@ export default function Home() {
 
           {/* Insurance */}
           <section>
-            <h2 className="text-xs font-semibold text-[#5E6C84] mb-5 pb-1 border-b border-[#E8E3DA]">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5E6C84] mb-3.5 sm:mb-5 pb-1 border-b border-[#E8E3DA]">
               Insurance
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <CheckboxField
                 id="hasHealthInsurance"
                 label="Health insurance"
@@ -482,13 +504,22 @@ export default function Home() {
             </div>
           </section>
 
+          {error && !result && (
+            <div className="p-4 rounded-md bg-[#FAF0ED] border border-[#F2D6CF] flex items-center gap-3 text-sm text-[#B54834]">
+              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+
           <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto px-8 py-3 rounded-md bg-[#2D5A4A] text-white text-sm font-medium
+              className="w-full sm:w-auto px-8 py-3.5 sm:py-3 rounded-md bg-[#2D5A4A] text-white text-sm font-medium
                          hover:bg-[#24493C] active:bg-[#1C3A30] disabled:opacity-50 disabled:cursor-not-allowed
-                         transition shadow-xs cursor-pointer"
+                         transition shadow-xs cursor-pointer flex items-center justify-center"
             >
               {loading ? "Analyzing profile…" : "Calculate resilience score"}
             </button>
@@ -497,78 +528,107 @@ export default function Home() {
 
         {/* ── Results Area ── */}
         {result && (
-          <div ref={resultsRef} className="mt-20 space-y-0">
+          <div ref={resultsRef} className="mt-12 sm:mt-20 space-y-0">
+
+            {/* Inconsistency / Risk Warning Banner */}
+            {result.warnings && result.warnings.length > 0 && (
+              <div className="mb-8 p-4 sm:p-5 bg-[#FAF0ED] border border-[#F2D6CF] border-l-4 border-l-[#B54834] rounded-r-md space-y-2">
+                <div className="flex items-center gap-2 text-[#B54834] font-semibold text-xs sm:text-sm uppercase tracking-wider">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>Diagnostic Warning: Profile Inconsistencies</span>
+                </div>
+                <ul className="space-y-1 text-xs sm:text-sm text-[#1A2332]/90 pl-5 list-disc">
+                  {result.warnings.map((w, idx) => (
+                    <li key={idx} className="leading-relaxed">{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* 1. HERO SCORE — always visible */}
-            <section className="text-center py-16 sm:py-20 border-y border-[#E8E3DA] space-y-5">
-              <p className="text-sm font-medium text-[#5E6C84]">
+            <section className="text-center py-10 sm:py-16 md:py-20 border-y border-[#E8E3DA] space-y-4 sm:space-y-5">
+              <p className="text-xs sm:text-sm font-medium uppercase tracking-wider text-[#5E6C84]">
                 Financial resilience score
               </p>
 
               <div className="flex items-baseline justify-center">
-                <span className={`font-serif text-[110px] sm:text-[140px] font-normal leading-none tracking-tight ${scoreColor(result.score)}`}>
+                <span className={`font-serif text-7xl xs:text-8xl sm:text-[120px] md:text-[140px] font-normal leading-none tracking-tight ${scoreColor(result.score)}`}>
                   {result.score}
                 </span>
-                <span className="text-xl sm:text-2xl font-light text-[#5E6C84]/50 ml-2">
+                <span className="text-lg sm:text-2xl font-light text-[#5E6C84]/50 ml-1.5 sm:ml-2">
                   / 100
                 </span>
               </div>
 
               <div className="space-y-1">
-                <p className="text-lg font-semibold text-[#1A2332]">
+                <p className="text-base sm:text-lg font-semibold text-[#1A2332]">
                   {result.category}
                 </p>
-                <p className="text-sm text-[#5E6C84]">
+                <p className="text-xs sm:text-sm text-[#5E6C84]">
                   {result.pillars.savingsRunway.runwayMonths.toFixed(1)} months estimated runway
                 </p>
               </div>
 
               {result.cappedByInsuranceGate && (
-                <p className="text-sm text-[#5E6C84] pt-2">
-                  Score capped at 60 due to absence of health insurance
-                </p>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF0ED] border border-[#F2D6CF] text-xs sm:text-sm text-[#B54834] mt-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>Score capped at 60 due to absence of health insurance</span>
+                </div>
+              )}
+
+              {result.cappedByInsolvency && (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF0ED] border border-[#F2D6CF] text-xs sm:text-sm text-[#B54834] mt-2 ml-0 sm:ml-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>Score capped at 30 due to acute cash-flow deficit without liquid reserves</span>
+                </div>
               )}
             </section>
 
             {/* 2. AI EXPLANATION — always visible */}
             {loading && (
-              <div className="py-6 border-b border-[#E8E3DA] flex items-center gap-3 text-base text-[#5E6C84]">
-                <div className="h-4 w-4 rounded-full border-2 border-[#E8E3DA] border-t-[#2D5A4A] animate-spin" />
+              <div className="py-6 border-b border-[#E8E3DA] flex items-center gap-3 text-sm sm:text-base text-[#5E6C84]">
+                <div className="h-4 w-4 rounded-full border-2 border-[#E8E3DA] border-t-[#2D5A4A] animate-spin shrink-0" />
                 <span>Generating personalized explanation…</span>
               </div>
             )}
 
             {explanation && (
-              <section className="py-10 border-b border-[#E8E3DA] space-y-4">
-                <h3 className="text-sm font-semibold text-[#5E6C84]">
+              <section className="py-8 sm:py-10 border-b border-[#E8E3DA] space-y-3.5 sm:space-y-4">
+                <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#5E6C84]">
                   What this means for you
                 </h3>
-                <div className="border-l-2 border-[#1A2332] pl-6 py-1">
-                  <p className="text-[15px] text-[#1A2332] leading-relaxed whitespace-pre-line font-normal">
+                <div className="bg-[#F4F0E8]/40 border border-[#E8E3DA] border-l-4 border-l-[#1A2332] rounded-r-md p-4 sm:p-5">
+                  <p className="text-sm sm:text-[15px] text-[#1A2332] leading-relaxed whitespace-pre-line font-normal">
                     {explanation}
                   </p>
                 </div>
               </section>
             )}
 
-            {/* 3. TOP INTERVENTION SUMMARY — always visible, single line */}
+            {/* 3. TOP INTERVENTION SUMMARY — always visible */}
             {(() => {
               const ranked = rankAllInterventions(input, result);
               if (ranked.length === 0) return null;
               const top = ranked[0];
               return (
-                <div className="py-6 border-b border-[#E8E3DA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="py-5 sm:py-6 border-b border-[#E8E3DA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold text-[#5E6C84] mb-1">Your highest-impact next step</p>
                     <p className="text-sm text-[#1A2332]">
                       {top.fixDescription}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 text-sm font-mono">
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 text-sm font-mono bg-white sm:bg-transparent px-3 py-1.5 sm:p-0 rounded border sm:border-0 border-[#E8E3DA]">
                     <span className="text-[#5E6C84] line-through">{top.currentScore}</span>
                     <span className="text-[#5E6C84]">→</span>
                     <span className="font-bold text-[#1A2332]">{top.projectedScore}</span>
-                    <span className="text-[#2D5A4A] font-semibold text-xs">+{top.scoreDelta} pts</span>
+                    <span className="text-[#2D5A4A] font-semibold text-xs ml-1">+{top.scoreDelta} pts</span>
                   </div>
                 </div>
               );
@@ -576,16 +636,16 @@ export default function Home() {
 
             {/* 4. SHARE BUTTON — always visible (once explanation loads) */}
             {explanation && (
-              <div className="py-8 border-b border-[#E8E3DA] flex justify-start">
+              <div className="py-6 sm:py-8 border-b border-[#E8E3DA] flex justify-start">
                 <button
                   type="button"
                   onClick={handleDownloadShareCard}
                   disabled={downloading}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-[#2D5A4A] text-white text-xs font-medium
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 sm:py-2.5 rounded-md bg-[#2D5A4A] text-white text-xs sm:text-sm font-medium
                              hover:bg-[#24493C] active:bg-[#1C3A30] disabled:opacity-50 disabled:cursor-not-allowed
                              transition cursor-pointer shadow-xs"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   {downloading ? "Generating share card…" : "Download share card"}
@@ -594,7 +654,7 @@ export default function Home() {
             )}
 
             {/* ── COLLAPSIBLE SECTIONS ── */}
-            <div className="space-y-0 pt-4">
+            <div className="space-y-0 pt-2 sm:pt-4">
 
               {/* 5. PILLAR BREAKDOWN */}
               <CollapsibleSection title="See what's driving your score">
@@ -632,25 +692,25 @@ export default function Home() {
 
               {/* 6. SHOCK SIMULATOR */}
               <CollapsibleSection title="What happens if things go wrong?">
-                <div className="space-y-6">
-                  <p className="text-sm text-[#5E6C84]">
+                <div className="space-y-5 sm:space-y-6">
+                  <p className="text-xs sm:text-sm text-[#5E6C84]">
                     Stress-test your liquid buffer over a 6-month horizon against sudden events.
                   </p>
 
                   {/* Simulation buttons */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <button
                       type="button"
                       onClick={() => setActiveShock("job_loss")}
-                      className={`p-4 rounded-md text-left transition border cursor-pointer ${
+                      className={`p-3.5 sm:p-4 rounded-md text-left transition border cursor-pointer ${
                         activeShock === "job_loss"
                           ? "bg-white border-[#1A2332] ring-1 ring-[#1A2332]"
                           : "bg-white/60 border-[#E8E3DA] hover:border-[#1A2332]/40"
                       }`}
                     >
-                      <div className="flex items-baseline justify-between">
+                      <div className="flex flex-col xs:flex-row xs:items-baseline justify-between gap-1">
                         <span className="text-sm font-semibold text-[#1A2332]">Simulate job loss</span>
-                        <span className="text-xs text-[#5E6C84] font-mono">Income = ₹0</span>
+                        <span className="text-xs text-[#5E6C84] font-mono shrink-0">Income = ₹0</span>
                       </div>
                       <p className="text-xs text-[#5E6C84] mt-1.5 leading-relaxed">
                         Income drops to zero while living expenses and debt service continue.
@@ -660,15 +720,15 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => setActiveShock("medical_emergency")}
-                      className={`p-4 rounded-md text-left transition border cursor-pointer ${
+                      className={`p-3.5 sm:p-4 rounded-md text-left transition border cursor-pointer ${
                         activeShock === "medical_emergency"
                           ? "bg-white border-[#1A2332] ring-1 ring-[#1A2332]"
                           : "bg-white/60 border-[#E8E3DA] hover:border-[#1A2332]/40"
                       }`}
                     >
-                      <div className="flex items-baseline justify-between">
+                      <div className="flex flex-col xs:flex-row xs:items-baseline justify-between gap-1">
                         <span className="text-sm font-semibold text-[#1A2332]">Simulate medical emergency</span>
-                        <span className="text-xs text-[#5E6C84] font-mono">
+                        <span className="text-xs text-[#5E6C84] font-mono shrink-0">
                           {input.hasHealthInsurance ? "₹60k net" : "₹300k net"}
                         </span>
                       </div>
@@ -690,7 +750,7 @@ export default function Home() {
                     return (
                       <div className="space-y-4 pt-2">
                         {/* Status Note */}
-                        <div className={`p-3.5 bg-white border border-[#E8E3DA] rounded-md text-sm text-[#1A2332] leading-relaxed border-l-4 ${
+                        <div className={`p-3 sm:p-3.5 bg-white border border-[#E8E3DA] rounded-md text-xs sm:text-sm text-[#1A2332] leading-relaxed border-l-4 ${
                             exhaustedItem ? "border-l-[#B54834]" :
                             criticalItem  ? "border-l-[#1A2332]/40" :
                             "border-l-[#2D5A4A]"
@@ -733,16 +793,16 @@ export default function Home() {
                               "text-[#B54834]";
 
                             return (
-                              <div key={point.month} className="space-y-1.5 text-sm">
-                                <div className="flex justify-between items-baseline">
-                                  <span className="text-[#5E6C84]">
+                              <div key={point.month} className="space-y-1.5 text-xs sm:text-sm">
+                                <div className="flex justify-between items-baseline gap-2">
+                                  <span className="text-[#5E6C84] truncate">
                                     {point.month === 0 ? "Month 0 (Shock event)" : `Month ${point.month}`}
                                   </span>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                                     <span className={`font-mono font-semibold ${textColor}`}>
                                       ₹{point.liquidBalance.toLocaleString("en-IN")}
                                     </span>
-                                    <span className="text-[11px] text-[#5E6C84] capitalize">
+                                    <span className="text-[10px] sm:text-[11px] text-[#5E6C84] capitalize">
                                       · {point.status}
                                     </span>
                                   </div>
@@ -779,74 +839,74 @@ export default function Home() {
 
                 return (
                   <CollapsibleSection title="Compare your future if you fix this">
-                    <div className="space-y-10">
+                    <div className="space-y-8 sm:space-y-10">
 
                       {/* All interventions list */}
                       <div className="space-y-3">
-                        <p className="text-sm text-[#5E6C84]">Highest-leverage steps to strengthen your resilience score.</p>
+                        <p className="text-xs sm:text-sm text-[#5E6C84]">Highest-leverage steps to strengthen your resilience score.</p>
                         {topInterventions.map((projection, i) => (
                           <div
                             key={i}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-md bg-white border border-[#E8E3DA]"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 sm:p-4 rounded-md bg-white border border-[#E8E3DA]"
                           >
-                            <p className="text-sm text-[#1A2332] flex-1">
+                            <p className="text-xs sm:text-sm text-[#1A2332] flex-1">
                               <span className="font-semibold">{i + 1}.</span> By{" "}
                               <span className="font-medium text-[#1A2332] underline underline-offset-2 decoration-[#E8E3DA]">
                                 {projection.fixDescription}
                               </span>
                             </p>
-                            <div className="flex items-center gap-3 shrink-0 text-sm">
-                              <span className="text-[#5E6C84] line-through font-mono">{projection.currentScore}</span>
+                            <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0 text-xs sm:text-sm font-mono">
+                              <span className="text-[#5E6C84] line-through">{projection.currentScore}</span>
                               <span className="text-[#5E6C84]">→</span>
-                              <span className="font-bold text-[#1A2332] font-mono">{projection.projectedScore}</span>
-                              <span className="text-[#2D5A4A] font-semibold text-xs">+{projection.scoreDelta} pts</span>
+                              <span className="font-bold text-[#1A2332]">{projection.projectedScore}</span>
+                              <span className="text-[#2D5A4A] font-semibold text-xs font-sans">+{projection.scoreDelta} pts</span>
                             </div>
                           </div>
                         ))}
                       </div>
 
                       {/* Counterfactual comparison */}
-                      <div className="space-y-5">
+                      <div className="space-y-4 sm:space-y-5">
                         <div>
-                          <h4 className="text-base font-semibold text-[#1A2332]">
+                          <h4 className="text-sm sm:text-base font-semibold text-[#1A2332]">
                             You today vs. you after fixing your weakest link
                           </h4>
-                          <p className="text-sm text-[#5E6C84] mt-1">
+                          <p className="text-xs sm:text-sm text-[#5E6C84] mt-1">
                             Targeted action: <span className="font-medium text-[#1A2332]">{top.fixDescription}</span> (+{top.scoreDelta} pts).
                           </p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                           {/* Today */}
-                          <div className="bg-white/60 rounded-md p-5 border border-[#E8E3DA] space-y-4">
+                          <div className="bg-white/60 rounded-md p-4 sm:p-5 border border-[#E8E3DA] space-y-3.5 sm:space-y-4">
                             <div className="flex items-baseline justify-between pb-3 border-b border-[#E8E3DA]">
                               <span className="text-xs font-semibold text-[#5E6C84]">Today</span>
-                              <span className={`text-lg font-bold font-mono ${scoreColor(result.score)}`}>
+                              <span className={`text-base sm:text-lg font-bold font-mono ${scoreColor(result.score)}`}>
                                 {result.score} <span className="text-xs font-normal text-[#5E6C84]">({result.category})</span>
                               </span>
                             </div>
                             <dl className="space-y-2.5 text-xs">
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Savings runway</dt><dd className="font-mono text-[#1A2332]">{result.pillars.savingsRunway.runwayMonths.toFixed(1)} mo</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Debt burden score</dt><dd className="font-mono text-[#1A2332]">{result.pillars.debtBurden.score}/100</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Shock defense score</dt><dd className="font-mono text-[#1A2332]">{result.pillars.shockDefense.score}/100</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Health insurance</dt><dd className="text-[#1A2332]">{input.hasHealthInsurance ? "Yes" : "No"}</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Term life insurance</dt><dd className="text-[#1A2332]">{input.hasTermLifeInsurance ? "Yes" : "No"}</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Savings runway</dt><dd className="font-mono text-[#1A2332]">{result.pillars.savingsRunway.runwayMonths.toFixed(1)} mo</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Debt burden score</dt><dd className="font-mono text-[#1A2332]">{result.pillars.debtBurden.score}/100</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Shock defense score</dt><dd className="font-mono text-[#1A2332]">{result.pillars.shockDefense.score}/100</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Health insurance</dt><dd className="text-[#1A2332]">{input.hasHealthInsurance ? "Yes" : "No"}</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Term life insurance</dt><dd className="text-[#1A2332]">{input.hasTermLifeInsurance ? "Yes" : "No"}</dd></div>
                             </dl>
                           </div>
 
                           {/* After Fixing */}
-                          <div className="bg-white rounded-md p-5 border border-[#E8E3DA] space-y-4">
+                          <div className="bg-white rounded-md p-4 sm:p-5 border border-[#E8E3DA] space-y-3.5 sm:space-y-4">
                             <div className="flex items-baseline justify-between pb-3 border-b border-[#E8E3DA]">
                               <span className="text-xs font-semibold text-[#1A2332]">After fixing weakest link</span>
-                              <span className={`text-lg font-bold font-mono ${scoreColor(afterResult.score)}`}>
+                              <span className={`text-base sm:text-lg font-bold font-mono ${scoreColor(afterResult.score)}`}>
                                 {afterResult.score} <span className="text-xs font-normal text-[#5E6C84]">({afterResult.category})</span>
                               </span>
                             </div>
                             <dl className="space-y-2.5 text-xs">
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Savings runway</dt><dd className={`font-mono ${runwayImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.savingsRunway.runwayMonths.toFixed(1)} mo{runwayImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{(afterResult.pillars.savingsRunway.runwayMonths - result.pillars.savingsRunway.runwayMonths).toFixed(1)})</span>}</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Debt burden score</dt><dd className={`font-mono ${debtImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.debtBurden.score}/100{debtImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{afterResult.pillars.debtBurden.score - result.pillars.debtBurden.score})</span>}</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Shock defense score</dt><dd className={`font-mono ${shockImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.shockDefense.score}/100{shockImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{afterResult.pillars.shockDefense.score - result.pillars.shockDefense.score})</span>}</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Health insurance</dt><dd className={healthImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}>{top.fixedInput.hasHealthInsurance ? "Yes" : "No"}{healthImproved && <span className="text-[11px] ml-1 font-normal">(Fixed)</span>}</dd></div>
-                              <div className="flex justify-between"><dt className="text-[#5E6C84]">Term life insurance</dt><dd className={termImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}>{top.fixedInput.hasTermLifeInsurance ? "Yes" : "No"}{termImproved && <span className="text-[11px] ml-1 font-normal">(Fixed)</span>}</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Savings runway</dt><dd className={`font-mono ${runwayImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.savingsRunway.runwayMonths.toFixed(1)} mo{runwayImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{(afterResult.pillars.savingsRunway.runwayMonths - result.pillars.savingsRunway.runwayMonths).toFixed(1)})</span>}</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Debt burden score</dt><dd className={`font-mono ${debtImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.debtBurden.score}/100{debtImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{afterResult.pillars.debtBurden.score - result.pillars.debtBurden.score})</span>}</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Shock defense score</dt><dd className={`font-mono ${shockImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}`}>{afterResult.pillars.shockDefense.score}/100{shockImproved && <span className="text-[11px] ml-1 font-sans font-normal">(+{afterResult.pillars.shockDefense.score - result.pillars.shockDefense.score})</span>}</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Health insurance</dt><dd className={healthImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}>{top.fixedInput.hasHealthInsurance ? "Yes" : "No"}{healthImproved && <span className="text-[11px] ml-1 font-normal">(Fixed)</span>}</dd></div>
+                              <div className="flex justify-between items-center"><dt className="text-[#5E6C84]">Term life insurance</dt><dd className={termImproved ? "text-[#2D5A4A] font-semibold" : "text-[#5E6C84]"}>{top.fixedInput.hasTermLifeInsurance ? "Yes" : "No"}{termImproved && <span className="text-[11px] ml-1 font-normal">(Fixed)</span>}</dd></div>
                             </dl>
                           </div>
                         </div>
@@ -860,33 +920,33 @@ export default function Home() {
               {/* 8. UNDER THE HOOD / DEBUGGER */}
               <CollapsibleSection title="See the full math behind this">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-[#5E6C84]">Raw arithmetic, haircuts, and inputs behind the score.</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                    <p className="text-xs sm:text-sm text-[#5E6C84]">Raw arithmetic, haircuts, and inputs behind the score.</p>
                     <button
                       type="button"
                       onClick={() => setDebugMode(!debugMode)}
-                      className="text-xs text-[#1A2332] hover:underline underline-offset-2 font-medium"
+                      className="text-xs text-[#1A2332] hover:underline underline-offset-2 font-medium self-start sm:self-auto min-h-[32px] sm:min-h-0 inline-flex items-center cursor-pointer"
                     >
                       {debugMode ? "Hide details" : "Inspect arithmetic"}
                     </button>
                   </div>
 
-                  <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs">
                     <div className="bg-white/60 p-3.5 rounded border border-[#E8E3DA]">
                       <dt className="text-[#5E6C84]">Effective liquid assets</dt>
-                      <dd className="font-mono font-semibold text-[#1A2332] mt-1">
+                      <dd className="font-mono font-semibold text-[#1A2332] mt-1 text-sm">
                         ₹{result.rawFacts.effectiveLiquidAssets.toLocaleString("en-IN")}
                       </dd>
                     </div>
                     <div className="bg-white/60 p-3.5 rounded border border-[#E8E3DA]">
                       <dt className="text-[#5E6C84]">Gold haircut applied</dt>
-                      <dd className="font-mono font-semibold text-[#1A2332] mt-1">
+                      <dd className="font-mono font-semibold text-[#1A2332] mt-1 text-sm">
                         ₹{result.rawFacts.goldHaircutApplied.toLocaleString("en-IN")}
                       </dd>
                     </div>
                     <div className="bg-white/60 p-3.5 rounded border border-[#E8E3DA]">
                       <dt className="text-[#5E6C84]">Adjusted monthly burn</dt>
-                      <dd className="font-mono font-semibold text-[#1A2332] mt-1">
+                      <dd className="font-mono font-semibold text-[#1A2332] mt-1 text-sm">
                         ₹{result.rawFacts.dependencyAdjustedBurnRate.toLocaleString("en-IN")}
                       </dd>
                     </div>
@@ -914,6 +974,20 @@ export default function Home() {
                               {result.cappedByInsuranceGate ? "Yes (capped at 60)" : "No"}
                             </span>
                           </div>
+                          <div className="flex justify-between">
+                            <span>Insolvency cap applied?</span>
+                            <span className="text-[#1A2332] font-semibold">
+                              {result.cappedByInsolvency ? "Yes (capped at 30)" : "No"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Net monthly cashflow</span>
+                            <span className={`font-mono font-semibold ${
+                              (result.rawFacts.netMonthlyCashflow ?? 0) < 0 ? "text-[#B54834]" : "text-[#2D5A4A]"
+                            }`}>
+                              ₹{(result.rawFacts.netMonthlyCashflow ?? 0).toLocaleString("en-IN")}
+                            </span>
+                          </div>
                           <div className="flex justify-between border-t border-[#E8E3DA] pt-1 mt-1 font-semibold text-[#1A2332]">
                             <span>Final resilience score</span>
                             <span className="font-mono font-bold">{result.score} / 100</span>
@@ -922,7 +996,7 @@ export default function Home() {
                       </div>
                       <div>
                         <h4 className="font-semibold text-[#1A2332] mb-2">Input profile snapshot</h4>
-                        <div className="bg-white rounded p-3.5 border border-[#E8E3DA] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-[#5E6C84]">
+                        <div className="bg-white rounded p-3.5 border border-[#E8E3DA] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-[#5E6C84]">
                           <div className="flex justify-between"><span>Monthly income:</span><span className="font-mono text-[#1A2332]">₹{input.monthlyIncome.toLocaleString("en-IN")}</span></div>
                           <div className="flex justify-between"><span>Essential expenses:</span><span className="font-mono text-[#1A2332]">₹{input.monthlyEssentialExpenses.toLocaleString("en-IN")}</span></div>
                           <div className="flex justify-between"><span>Income stability:</span><span className="text-[#1A2332]">{input.incomeStability}</span></div>
