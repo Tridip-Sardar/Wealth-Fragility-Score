@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${inter.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#FAF8F4] text-[#1A2332] font-[family-name:var(--font-inter)] antialiased selection:bg-[#2D5A4A] selection:text-[#FAF8F4]">
         {children}
+        <Analytics />
       </body>
     </html>
   );
